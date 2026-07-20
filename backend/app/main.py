@@ -1,20 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.investigate import router as investigate_router
+from app.api import investigate
 
-app = FastAPI(title="AI Kubernetes Agent", version="0.2.0")
+app = FastAPI(title="AI Kubernetes Agent")
 
+# Allow requests from Next.js frontend running on localhost:3000
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Attach router
-app.include_router(investigate_router)
+app.include_router(investigate.router)
 
-@app.get("/health")
-def health_check():
-    return {"status": "healthy", "service": "ai-kubernetes-agent"}
+@app.get("/")
+def read_root():
+    return {"message": "Kubernetes AI Agent Backend is running."}
