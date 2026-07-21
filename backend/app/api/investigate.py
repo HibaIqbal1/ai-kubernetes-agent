@@ -1,10 +1,14 @@
 import os
-import yaml
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from app.services.k8s_collector import collect_cluster_evidence
 from app.services.ai_reasoner import analyze_evidence
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 router = APIRouter()
 
@@ -16,8 +20,7 @@ def list_clusters():
     """List available Kubernetes clusters/contexts from kubeconfig."""
     kubeconfig_path = os.getenv("KUBECONFIG_PATH", os.path.expanduser("~/.kube/config"))
     
-    if not os.path.exists(kubeconfig_path):
-        # Return local default if kubeconfig isn't present
+    if not os.path.exists(kubeconfig_path) or yaml is None:
         return {"clusters": ["docker-desktop", "minikube", "kind-local-cluster"]}
 
     try:
@@ -33,26 +36,7 @@ def list_clusters():
 def run_investigation(req: Optional[InvestigateRequest] = None):
     cluster_context = req.cluster_context if req else None
     
-    # 1. Collect Evidence from Kubernetes
     evidence = collect_cluster_evidence(context=cluster_context)
-    
-    # 2. Check if cluster is completely unreachable or empty
-    if "error" in evidence and "unreachable" in evidence["error"].lower():
-        return {
-            "status": "error",
-            "message": "Unable to connect to Kubernetes cluster.",
-            "details": "Please verify your kubeconfig path, cluster status, and kubectl permissions.",
-            "diagnosis": {
-                "root_cause": "Cluster Unreachable",
-                "explanation": "Could not establish connection to the specified Kubernetes API server.",
-                "fix": "Ensure Minikube, Docker Desktop Kubernetes, or Kind cluster is running.",
-                "kubectl_command": "kubectl cluster-info",
-                "prevention": "Verify your local k8s distribution is started.",
-                "confidence": 0
-            }
-        }
-
-    # 3. Trigger AI Reasoning
     analysis = analyze_evidence(evidence)
     
     return {
