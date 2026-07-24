@@ -1,8 +1,8 @@
-import "./globals.css";
+import './globals.css';
 
 export const metadata = {
-  title: "AI Kubernetes Agent",
-  description: "Autonomous SRE Diagnostic System",
+  title: 'AI Kubernetes Agent',
+  description: 'Investigate cluster issues with AI-powered root cause analysis',
 };
 
 export default function RootLayout({
@@ -11,10 +11,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="bg-slate-100 text-slate-800 antialiased" suppressHydrationWarning>
-        {children}
-      </body>
+    <html lang="en">
+      <head>
+        {/* Tailwind CDN Script */}
+        <script src="https://cdn.tailwindcss.com"></script>
+      </head>
+      <body>{children}</body>
     </html>
   );
 }

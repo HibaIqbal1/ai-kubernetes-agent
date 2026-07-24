@@ -1,34 +1,24 @@
-import subprocess
-import json
-
-def run_kubectl(command: list, context: str = None):
-    try:
-        base_cmd = ["kubectl"]
-        if context:
-            base_cmd.extend(["--context", context])
-        
-        result = subprocess.run(
-            base_cmd + command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=10
-        )
-        if result.returncode != 0:
-            return f"Error: {result.stderr.strip()}"
-        return result.stdout.strip()
-    except Exception as e:
-        return f"Execution failed: {str(e)}"
-
 def collect_cluster_evidence(context: str = None) -> dict:
-    evidence = {
-        "pods": run_kubectl(["get", "pods", "-A", "-o", "json"], context),
-        "events": run_kubectl(["get", "events", "-A", "--sort-by=.metadata.creationTimestamp"], context),
-        "deployments": run_kubectl(["get", "deployments", "-A", "-o", "json"], context)
-    }
-    
-    # If kubectl execution threw errors across the board
-    if "Execution failed" in evidence["pods"] or "Error:" in evidence["pods"]:
-        evidence["status"] = "unreachable"
-        
-    return evidence
+    # Return different mock issues based on the selected cluster context
+    if context == "minikube":
+        return {
+            "cluster_context": "minikube",
+            "pods": ["pod/payment-service-7f (OOMKilled)"],
+            "events": ["Memory limit exceeded: Container used 512Mi, limit was 256Mi"],
+            "logs": "Fatal error: Out of memory"
+        }
+    elif context == "kind-local-cluster":
+        return {
+            "cluster_context": "kind-local-cluster",
+            "pods": ["pod/ingress-nginx-controller (CrashLoopBackOff)"],
+            "events": ["Liveness probe failed: HTTP probe failed with statuscode 500"],
+            "logs": "Configuration syntax error on line 42"
+        }
+    else:
+        # Default for docker-desktop
+        return {
+            "cluster_context": context or "docker-desktop",
+            "pods": ["pod/backend-api-2 (ImagePullBackOff)"],
+            "events": ["Failed to pull image 'myrepo/api:v999': repository does not exist"],
+            "logs": "Error: image not found"
+        }
